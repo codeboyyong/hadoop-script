@@ -5,7 +5,7 @@
 #$2 :HADOOP_VERSION=2.3.0-cdh5.0.0
 #$3 :HADOOP_URL=http://archive.cloudera.com/cdh5/cdh/5/hadoop-2.3.0-cdh5.0.0.tar.gz
 #$4 :HADOOP_HOME=~/hadoop-install
-#$5 :HADOOP_INSTALL=/Users/zhaoyong/dev/adl_new/HadoopInstallation/
+#$5 :HADOOP_CONF_TEMPLATE_DIR=../conf 
 
 if [ "$1" != "" ]
 then
@@ -34,9 +34,9 @@ echo "HADOOP_HOME=$HADOOP_HOME"
 
 if [ "$5" != "" ]
 then
-    HADOOP_INSTALL="$5"
+    HADOOP_CONF_TEMPLATE_DIR="$5"
 fi
-echo "HADOOP_INSTALL=$HADOOP_INSTALL"
+echo "HADOOP_CONF_TEMPLATE_DIR=$HADOOP_CONF_TEMPLATE_DIR"
 
 echo "-------------------------------------------------------"
 echo "Starting install hadoop version $HADOOP_VERSION"
@@ -83,11 +83,30 @@ echo "Please wait..."
 tar -xf $HADOOP_IMAGE_FILE  -C $HADOOP_HOME
 
 #update the configuration
-echo "cp -f $HADOOP_INSTALL/conf/$HADOOP_VERSION/*.xml $HADOOP_DIR/etc/hadoop"
-cp -f $HADOOP_INSTALL/conf/$HADOOP_VERSION/*.xml $HADOOP_DIR/etc/hadoop
+ 
 
 
-for FILE in `ls $HADOOP_DIR/etc/hadoop/*.xml`
+
+if [[ $HADOOP_VERSION == 1* ]]
+then
+	CONF_DIR=conf
+	echo "cp -f $HADOOP_CONF_TEMPLATE_DIR/1.x/*.xml $HADOOP_DIR/conf"
+	cp -f $HADOOP_CONF_TEMPLATE_DIR/1.x/*.xml $HADOOP_DIR/conf
+
+elif [[ $HADOOP_VERSION == *cdh* ]]
+then
+	CONF_DIR=etc/hadoop
+	echo "cp -f $HADOOP_CONF_TEMPLATE_DIR/$HADOOP_VERSION/*.xml $HADOOP_DIR/etc/hadoop"
+	cp -f $HADOOP_CONF_TEMPLATE_DIR/$HADOOP_VERSION/*.xml $HADOOP_DIR/etc/hadoop
+
+else
+	CONF_DIR=etc/hadoop
+	echo "cp -f $HADOOP_CONF_TEMPLATE_DIR/2.x/*.xml $HADOOP_DIR/conf"
+	 cp -f $HADOOP_CONF_TEMPLATE_DIR/2.x/*.xml $HADOOP_DIR/etc/hadoop
+fi	
+
+
+for FILE in `ls $HADOOP_DIR/$CONF_DIR/*.xml`
 do
  sed 's|HADOOP_HOST|'$HADOOP_HOST'|g' < $FILE > TMP_00
  sed 's|HADOOP_HOME|'$HADOOP_DIR'|g' < TMP_00 > TMP_01
@@ -108,6 +127,7 @@ then
     echo "updating java home for hadoop env : $JAVA_HOME"
 else
     echo "JAVA_HOME not found"
+    exit
 
 fi
 

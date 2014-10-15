@@ -8,7 +8,7 @@ fi
 
 IS_YARN=false
 
-if [[ $a == 2* ]]
+if [[ $HADOOP_VERSION == 2* ]]
 then
 	IS_YARN=true
 fi	 

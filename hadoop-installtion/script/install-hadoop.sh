@@ -4,7 +4,7 @@
 #$1 :HADOOP_HOST=localhost
 #$2 :HADOOP_VERSION=2.3.0-cdh5.0.0
 #$3 :HADOOP_URL=http://archive.cloudera.com/cdh5/cdh/5/hadoop-2.3.0-cdh5.0.0.tar.gz
-#$4 :HADOOP_HOME=~/hadoop-install
+#$4 :HADOOP_DIR=~/hadoop-install
 #$5 :HADOOP_CONF_TEMPLATE_DIR=../conf 
 
 if [ "$1" != "" ]
@@ -19,24 +19,26 @@ then
 fi
 echo "HADOOP_VERSION=$HADOOP_VERSION"
 
-
 if [ "$3" != "" ]
 then
-    HADOOP_URL="$3"
+    HADOOP_DIR="$3"
 fi
-echo "HADOOP_URL=$HADOOP_URL"
+echo "HADOOP_DIR=$HADOOP_DIR"
 
 if [ "$4" != "" ]
 then
-    HADOOP_HOME="$4"
-fi
-echo "HADOOP_HOME=$HADOOP_HOME"
-
-if [ "$5" != "" ]
-then
-    HADOOP_CONF_TEMPLATE_DIR="$5"
+    HADOOP_CONF_TEMPLATE_DIR="$4"
 fi
 echo "HADOOP_CONF_TEMPLATE_DIR=$HADOOP_CONF_TEMPLATE_DIR"
+
+if [[ $HADOOP_VERSION == *cdh* ]]
+then
+    HADOOP_URL=http://archive.cloudera.com/cdh5/cdh/5/hadoop-$HADOOP_VERSION.tar.gz
+else
+    HADOOP_URL=http://apache.mirrors.tds.net/hadoop/common/hadoop-$HADOOP_VERSION/hadoop-$HADOOP_VERSION.tar.gz
+fi
+
+echo "HADOOP_URL=$HADOOP_URL"
 
 echo "-------------------------------------------------------"
 echo "Starting install hadoop version $HADOOP_VERSION"
@@ -53,19 +55,19 @@ echo "Starting install hadoop version $HADOOP_VERSION"
 #fi
 
 
-HADOOP_DIR=${HADOOP_HOME}/hadoop-${HADOOP_VERSION}
+HADOOP_HOME=${HADOOP_DIR}/hadoop-${HADOOP_VERSION}
 
 
-if [ -d $HADOOP_DIR ]
+if [ -d $HADOOP_HOME ]
     then
-    echo "Found HADOOP_DIR ,will overwrite in the install"
+    echo "Found HADOOP_HOME ,will overwrite in the install"
 else
-    echo "File $HADOOP_DIR does not exists will create one"
-    mkdir -p $HADOOP_DIR
+    echo "File $HADOOP_HOME does not exists will create one"
+    mkdir -p $HADOOP_HOME
 fi
 
 #rm -rf */.
-HADOOP_IMAGE_FILE="$HADOOP_HOME/hadoop-${HADOOP_VERSION}.tar.gz"
+HADOOP_IMAGE_FILE="$HADOOP_DIR/hadoop-${HADOOP_VERSION}.tar.gz"
 
 if [ -f $HADOOP_IMAGE_FILE ]
      then
@@ -78,9 +80,9 @@ else
     wget -q -O $HADOOP_IMAGE_FILE $HADOOP_URL
 fi
 
-echo "tar -xf $HADOOP_IMAGE_FILE  -C $HADOOP_HOME"
+echo "tar -xf $HADOOP_IMAGE_FILE  -C $HADOOP_DIR"
 echo "Please wait..."
-tar -xf $HADOOP_IMAGE_FILE  -C $HADOOP_HOME
+tar -xf $HADOOP_IMAGE_FILE  -C $HADOOP_DIR
 
 #update the configuration
  
@@ -90,35 +92,35 @@ tar -xf $HADOOP_IMAGE_FILE  -C $HADOOP_HOME
 if [[ $HADOOP_VERSION == 1* ]]
 then
 	CONF_DIR=conf
-	echo "cp -f $HADOOP_CONF_TEMPLATE_DIR/1.x/*.xml $HADOOP_DIR/conf"
-	cp -f $HADOOP_CONF_TEMPLATE_DIR/1.x/*.xml $HADOOP_DIR/conf
+	echo "cp -f $HADOOP_CONF_TEMPLATE_DIR/1.x/*.xml $HADOOP_HOME/conf"
+	cp -f $HADOOP_CONF_TEMPLATE_DIR/1.x/*.xml $HADOOP_HOME/conf
 
 elif [[ $HADOOP_VERSION == *cdh* ]]
 then
 	CONF_DIR=etc/hadoop
-	echo "cp -f $HADOOP_CONF_TEMPLATE_DIR/$HADOOP_VERSION/*.xml $HADOOP_DIR/etc/hadoop"
-	cp -f $HADOOP_CONF_TEMPLATE_DIR/$HADOOP_VERSION/*.xml $HADOOP_DIR/etc/hadoop
+	echo "cp -f $HADOOP_CONF_TEMPLATE_DIR/$HADOOP_VERSION/*.xml $HADOOP_HOME/etc/hadoop"
+	cp -f $HADOOP_CONF_TEMPLATE_DIR/$HADOOP_VERSION/*.xml $HADOOP_HOME/etc/hadoop
 
 else
 	CONF_DIR=etc/hadoop
-	echo "cp -f $HADOOP_CONF_TEMPLATE_DIR/2.x/*.xml $HADOOP_DIR/conf"
-	 cp -f $HADOOP_CONF_TEMPLATE_DIR/2.x/*.xml $HADOOP_DIR/etc/hadoop
+	echo "cp -f $HADOOP_CONF_TEMPLATE_DIR/2.x/*.xml $HADOOP_HOME/conf"
+	 cp -f $HADOOP_CONF_TEMPLATE_DIR/2.x/*.xml $HADOOP_HOME/etc/hadoop
 fi	
 
 
-for FILE in `ls $HADOOP_DIR/$CONF_DIR/*.xml`
+for FILE in `ls $HADOOP_HOME/$CONF_DIR/*.xml`
 do
  sed 's|HADOOP_HOST|'$HADOOP_HOST'|g' < $FILE > TMP_00
- sed 's|HADOOP_HOME|'$HADOOP_DIR'|g' < TMP_00 > TMP_01
+ sed 's|HADOOP_HOME|'$HADOOP_HOME'|g' < TMP_00 > TMP_01
  mv TMP_01 $FILE
 done
 
 rm TMP_00
 
 
-mkdir $HADOOP_DIR/data
-mkdir $HADOOP_DIR/name
-mkdir $HADOOP_DIR/tmp
+mkdir $HADOOP_HOME/data
+mkdir $HADOOP_HOME/name
+mkdir $HADOOP_HOME/tmp
 
 #update hadoop env and yarn env
 
@@ -131,15 +133,14 @@ else
 
 fi
 
-#$HADOOP_DIR/etc/hadoop/hadoop-env.sh
-#$HADOOP_DIR/etc/hadoop/yarn-env.sh
+
 
 #update the start script
 
 #install service
 
-echo "$HADOOP_DIR/bin/hadoop namenode -format"
-$HADOOP_DIR/bin/hadoop namenode -format
+echo "$HADOOP_HOME/bin/hadoop namenode -format"
+$HADOOP_HOME/bin/hadoop namenode -format
 
 # make it can ssh to localhost
 
@@ -149,6 +150,6 @@ $HADOOP_DIR/bin/hadoop namenode -format
 
 # make it can ssh to each other ssh
 
-echo "Install finished"
+echo "Install finished into $HADOOP_HOME"
 
 
